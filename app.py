@@ -19,6 +19,29 @@ def load_data(nrows):
     data[DATE_COLUMN] = pd.to_datetime(data[DATE_COLUMN])
     return data
 
+def load_bigquery_data():
+    # Construct a BigQuery client object.
+    client = bigquery.Client()
+
+    query = """
+        SELECT name, SUM(number) as total_people
+        FROM `bigquery-public-data.usa_names.usa_1910_2013`
+        WHERE state = 'TX'
+        GROUP BY name, state
+        ORDER BY total_people DESC
+        LIMIT 20
+    """
+    query_job = client.query(query) 
+
+    names = []
+    counts = []
+
+    for row in query_job:
+        names.append(row[0])
+        counts.append(row["total_people"])
+
+    df = pd.DataFrame( { "Name" : pd.Series(names), "Count": pd.Series(counts)})
+    return df
 
 def main():
     
@@ -33,6 +56,10 @@ def main():
         data[DATE_COLUMN].dt.hour, bins=24, range=(0,24))[0]
 
     st.bar_chart(hist_values)
+
+    df = load_bigquery_data()
+
+    df
 
 if __name__ == "__main__":
     main()
